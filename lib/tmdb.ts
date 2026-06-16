@@ -66,3 +66,38 @@ export const getTVDetails = (id: number) =>
 
 export const searchMulti = (query: string) =>
   fetchTMDB<TMDBResponse<Movie>>('/search/multi', { query }, 60)
+
+export interface TVSeason {
+  season_number: number
+  name: string
+  episode_count: number
+  episodes?: TVEpisode[]
+}
+
+export interface TVEpisode {
+  episode_number: number
+  name: string
+  overview: string
+  still_path: string | null
+  runtime: number | null
+}
+
+interface TVSeasonDetail {
+  season_number: number
+  name: string
+  episodes: TVEpisode[]
+}
+
+export const getTVSeasons = async (id: number, seasonNumbers: number[]): Promise<TVSeason[]> => {
+  const results = await Promise.allSettled(
+    seasonNumbers.map(n =>
+      fetchTMDB<TVSeasonDetail>(`/tv/${id}/season/${n}`, {}, 3600)
+    )
+  )
+  return results
+    .map((r, i) => r.status === 'fulfilled'
+      ? { ...r.value, episode_count: r.value.episodes.length }
+      : { season_number: seasonNumbers[i], name: `Season ${seasonNumbers[i]}`, episode_count: 0 }
+    )
+    .filter(s => s.episode_count > 0)
+}

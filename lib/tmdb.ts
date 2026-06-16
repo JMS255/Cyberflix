@@ -8,25 +8,19 @@ export const POSTER_MD = `${IMAGE_BASE}/w500`
 export const BACKDROP_LG = `${IMAGE_BASE}/w1280`
 export const BACKDROP_ORIG = `${IMAGE_BASE}/original`
 
-function getHeaders(): HeadersInit {
-  const token = process.env.NEXT_PUBLIC_TMDB_API_KEY
-  if (!token) throw new Error('NEXT_PUBLIC_TMDB_API_KEY is not set')
-  return {
-    Authorization: `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  }
-}
-
 async function fetchTMDB<T>(
   endpoint: string,
   params: Record<string, string> = {},
   cacheSeconds = 3600
 ): Promise<T> {
+  const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY
+  if (!apiKey) throw new Error('NEXT_PUBLIC_TMDB_API_KEY is not set')
+
   const url = new URL(`${BASE_URL}${endpoint}`)
+  url.searchParams.set('api_key', apiKey)
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
 
   const res = await fetch(url.toString(), {
-    headers: getHeaders(),
     next: { revalidate: cacheSeconds },
   })
 

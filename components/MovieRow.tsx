@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import MovieCard from './MovieCard'
 import type { Movie, MediaType } from '@/lib/types'
@@ -9,75 +9,102 @@ interface MovieRowProps {
   title: string
   movies: Movie[]
   defaultType?: MediaType
+  showRanks?: boolean
 }
 
-export default function MovieRow({ title, movies, defaultType = 'movie' }: MovieRowProps) {
+export default function MovieRow({ title, movies, defaultType = 'movie', showRanks = false }: MovieRowProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
-  const [canScrollLeft, setCanScrollLeft] = useState(false)
-  const [canScrollRight, setCanScrollRight] = useState(true)
+  const [canLeft, setCanLeft] = useState(false)
+  const [canRight, setCanRight] = useState(true)
+  const [hovered, setHovered] = useState(false)
+  const [cardW, setCardW] = useState(180)
 
-  const scroll = (direction: 'left' | 'right') => {
-    if (!scrollRef.current) return
-    const amount = scrollRef.current.clientWidth * 0.75
-    scrollRef.current.scrollBy({ left: direction === 'left' ? -amount : amount, behavior: 'smooth' })
-  }
+  // Calculate card width based on container width (Netflix shows ~6 per row on desktop)
+  useEffect(() => {
+    const calc = () => {
+      if (!scrollRef.current) return
+      const containerW = scrollRef.current.parentElement?.clientWidth ?? 0
+      const padding = 96 // px-12 * 2
+      const gap = 4
+      const count = containerW >= 1280 ? 6 : containerW >= 1024 ? 5 : containerW >= 768 ? 4 : 3
+      setCardW(Math.floor((containerW - padding - gap * (count - 1)) / count))
+    }
+    calc()
+    window.addEventListener('resize', calc)
+    return () => window.removeEventListener('resize', calc)
+  }, [])
 
   const onScroll = () => {
     if (!scrollRef.current) return
     const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current
-    setCanScrollLeft(scrollLeft > 0)
-    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 10)
+    setCanLeft(scrollLeft > 2)
+    setCanRight(scrollLeft + clientWidth < scrollWidth - 2)
+  }
+
+  const scroll = (dir: 'left' | 'right') => {
+    if (!scrollRef.current) return
+    scrollRef.current.scrollBy({
+      left: dir === 'left' ? -scrollRef.current.clientWidth : scrollRef.current.clientWidth,
+      behavior: 'smooth',
+    })
   }
 
   if (!movies.length) return null
 
   return (
-    <section className="relative group/row py-2">
+    <section
+      className="relative py-2 group/row"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
       {/* Row title */}
-      <h2 className="px-6 sm:px-12 lg:px-20 text-lg sm:text-xl font-bold text-white mb-3 flex items-center gap-3">
-        <span className="w-1 h-5 bg-cyber-accent rounded-full inline-block" />
-        {title}
-      </h2>
+      <div className="px-4 md:px-12 mb-2 flex items-center gap-3">
+        <h2 className="text-sm sm:text-base font-bold text-white">{title}</h2>
+        <span className={`text-xs font-semibold text-cyber-accent flex items-center gap-1 transition-all duration-300 ${hovered ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'}`}>
+          Explore All <ChevronRight size={12} />
+        </span>
+      </div>
 
-      {/* Scroll container */}
-      <div className="relative">
-        {/* Left arrow */}
-        <button
+      {/* Scroll area */}
+      <div className="relative overflow-hidden">
+        {/* Left arrow — Netflix full-height panel */}
+        <div
+          className={`absolute left-0 top-0 bottom-0 z-20 w-12 flex items-center justify-center
+            bg-gradient-to-r from-[#0a051b] to-transparent cursor-pointer
+            transition-opacity duration-200
+            ${canLeft && hovered ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
           onClick={() => scroll('left')}
-          className={`absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-cyber-bg/90 border border-cyber-border text-white flex items-center justify-center shadow-lg shadow-black/60 transition-all duration-200 hover:bg-cyber-card hover:border-cyber-accent/60 hover:shadow-cyber-accent/20 ${
-            canScrollLeft ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          } group-hover/row:opacity-100`}
-          aria-label="Scroll left"
         >
-          <ChevronLeft size={20} />
-        </button>
+          <ChevronLeft size={32} className="text-white drop-shadow-lg" strokeWidth={2.5} />
+        </div>
 
         {/* Cards */}
         <div
           ref={scrollRef}
           onScroll={onScroll}
-          className="flex gap-3 overflow-x-auto scrollbar-hide px-6 sm:px-12 lg:px-20 pb-2 scroll-smooth"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          className="flex gap-1 overflow-x-scroll scrollbar-hide px-4 md:px-12 pb-1"
+          style={{ ['--card-w' as string]: `${cardW}px` }}
         >
-          {movies.map(movie => (
-            <MovieCard key={movie.id} movie={movie} defaultType={defaultType} />
+          {movies.map((movie, i) => (
+            <MovieCard
+              key={movie.id}
+              movie={movie}
+              defaultType={defaultType}
+              rank={showRanks ? i + 1 : undefined}
+            />
           ))}
         </div>
 
         {/* Right arrow */}
-        <button
+        <div
+          className={`absolute right-0 top-0 bottom-0 z-20 w-12 flex items-center justify-center
+            bg-gradient-to-l from-[#0a051b] to-transparent cursor-pointer
+            transition-opacity duration-200
+            ${canRight && hovered ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
           onClick={() => scroll('right')}
-          className={`absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-cyber-bg/90 border border-cyber-border text-white flex items-center justify-center shadow-lg shadow-black/60 transition-all duration-200 hover:bg-cyber-card hover:border-cyber-accent/60 hover:shadow-cyber-accent/20 ${
-            canScrollRight ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          } group-hover/row:opacity-100`}
-          aria-label="Scroll right"
         >
-          <ChevronRight size={20} />
-        </button>
-
-        {/* Fade edges */}
-        <div className="absolute left-0 top-0 bottom-2 w-10 bg-gradient-to-r from-cyber-bg to-transparent pointer-events-none z-10" />
-        <div className="absolute right-0 top-0 bottom-2 w-10 bg-gradient-to-l from-cyber-bg to-transparent pointer-events-none z-10" />
+          <ChevronRight size={32} className="text-white drop-shadow-lg" strokeWidth={2.5} />
+        </div>
       </div>
     </section>
   )

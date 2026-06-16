@@ -3,10 +3,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Search, X, Tv2, Film } from 'lucide-react'
+import { Search, Bell, ChevronDown, X } from 'lucide-react'
 import { searchMulti } from '@/lib/tmdb'
-import type { Movie } from '@/lib/types'
 import { POSTER_SM } from '@/lib/tmdb'
+import type { Movie } from '@/lib/types'
+
+const NAV_LINKS = [
+  { label: 'Home', href: '/' },
+  { label: 'TV Shows', href: '/?tab=tv' },
+  { label: 'Movies', href: '/?tab=movies' },
+  { label: 'New & Popular', href: '/?tab=new' },
+  { label: 'My List', href: '/?tab=list' },
+]
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
@@ -14,12 +22,13 @@ export default function Navbar() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Movie[]>([])
   const [loading, setLoading] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20)
+    const onScroll = () => setScrolled(window.scrollY > 0)
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
@@ -29,7 +38,7 @@ export default function Navbar() {
     setLoading(true)
     try {
       const data = await searchMulti(q)
-      setResults(data.results.filter(r => r.media_type !== 'person').slice(0, 8))
+      setResults(data.results.filter(r => r.media_type !== 'person').slice(0, 6))
     } catch {
       setResults([])
     } finally {
@@ -55,108 +64,107 @@ export default function Navbar() {
   }
 
   const goTo = (r: Movie) => {
-    const type = r.media_type === 'tv' ? 'tv' : 'movie'
     closeSearch()
-    router.push(`/${type}/${r.id}`)
+    router.push(`/${r.media_type === 'tv' ? 'tv' : 'movie'}/${r.id}`)
   }
 
   return (
-    <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled
-          ? 'bg-cyber-bg/95 backdrop-blur-md border-b border-cyber-border shadow-lg shadow-cyber-accent/10'
-          : 'bg-gradient-to-b from-cyber-bg/80 to-transparent'
-      }`}
-    >
-      <div className="max-w-screen-2xl mx-auto px-4 sm:px-8 h-16 flex items-center justify-between gap-4">
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'bg-[#0a051b]' : 'bg-gradient-to-b from-black/80 to-transparent'}`}>
+      <div className="px-4 md:px-12 h-[68px] flex items-center gap-6">
+
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 shrink-0" onClick={closeSearch}>
-          <div className="w-8 h-8 rounded-lg bg-cyber-accent flex items-center justify-center shadow-lg shadow-cyber-accent/40">
-            <Tv2 size={18} className="text-white" />
-          </div>
-          <span className="text-xl font-extrabold tracking-tight text-white hidden sm:block">
-            <span className="text-cyber-accent">Cyber</span>Flix
-          </span>
+        <Link href="/" className="shrink-0 text-2xl font-black tracking-tighter text-cyber-accent select-none">
+          CYBERFLIX
         </Link>
 
-        {/* Nav links */}
-        <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-300">
-          <Link href="/" className="hover:text-cyber-accentLight transition-colors">Home</Link>
-          <Link href="/?tab=movies" className="hover:text-cyber-accentLight transition-colors">Movies</Link>
-          <Link href="/?tab=tv" className="hover:text-cyber-accentLight transition-colors">TV Shows</Link>
+        {/* Desktop nav links */}
+        <div className="hidden md:flex items-center gap-5 text-sm text-gray-300">
+          {NAV_LINKS.map(l => (
+            <Link key={l.label} href={l.href} className="hover:text-white transition-colors">
+              {l.label}
+            </Link>
+          ))}
         </div>
 
-        {/* Search */}
-        <div className="flex items-center gap-3 ml-auto relative">
-          {searchOpen ? (
-            <div className="flex items-center gap-2 bg-cyber-card border border-cyber-border rounded-full px-4 py-2 shadow-lg shadow-cyber-accent/20 w-72 sm:w-96 animate-fadeIn">
-              <Search size={16} className="text-cyber-accent shrink-0" />
-              <input
-                ref={inputRef}
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder="Search movies &amp; shows…"
-                className="bg-transparent text-sm text-white placeholder-gray-500 outline-none flex-1"
-                onKeyDown={e => e.key === 'Escape' && closeSearch()}
-              />
-              {loading && (
-                <div className="w-3 h-3 border-2 border-cyber-accent border-t-transparent rounded-full animate-spin shrink-0" />
-              )}
-              <button onClick={closeSearch} className="text-gray-400 hover:text-white transition-colors shrink-0">
-                <X size={16} />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={openSearch}
-              className="p-2 rounded-full text-gray-300 hover:text-cyber-accent hover:bg-cyber-card transition-all duration-200"
-              aria-label="Open search"
-            >
-              <Search size={20} />
-            </button>
-          )}
+        {/* Mobile browse dropdown */}
+        <button
+          className="md:hidden flex items-center gap-1 text-sm text-white"
+          onClick={() => setMobileOpen(v => !v)}
+        >
+          Browse <ChevronDown size={14} className={`transition-transform ${mobileOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {mobileOpen && (
+          <div className="absolute top-[68px] left-4 bg-black/95 border border-gray-700 rounded-md py-2 z-50 min-w-[160px]">
+            {NAV_LINKS.map(l => (
+              <Link key={l.label} href={l.href} onClick={() => setMobileOpen(false)}
+                className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
+                {l.label}
+              </Link>
+            ))}
+          </div>
+        )}
 
-          {/* Dropdown results */}
-          {searchOpen && results.length > 0 && (
-            <div className="absolute top-full right-0 mt-2 w-72 sm:w-96 bg-cyber-card border border-cyber-border rounded-2xl overflow-hidden shadow-2xl shadow-black/60 animate-fadeIn">
-              {results.map(r => (
-                <button
-                  key={r.id}
-                  onClick={() => goTo(r)}
-                  className="flex items-center gap-3 w-full px-4 py-3 hover:bg-cyber-cardHover transition-colors text-left group"
-                >
-                  <div className="w-10 h-14 rounded-lg overflow-hidden shrink-0 bg-cyber-bg border border-cyber-border">
-                    {r.poster_path ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={`${POSTER_SM}${r.poster_path}`}
-                        alt={r.title ?? r.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        {r.media_type === 'tv' ? <Tv2 size={16} className="text-gray-500" /> : <Film size={16} className="text-gray-500" />}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white truncate group-hover:text-cyber-accentLight transition-colors">
-                      {r.title ?? r.name}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${r.media_type === 'tv' ? 'bg-cyber-muted text-cyber-accentLight' : 'bg-gray-700 text-gray-300'}`}>
-                        {r.media_type === 'tv' ? 'TV' : 'Movie'}
-                      </span>
-                      {(r.release_date ?? r.first_air_date)?.slice(0, 4)}
-                      {r.vote_average > 0 && (
-                        <span className="ml-1 text-yellow-400">★ {r.vote_average.toFixed(1)}</span>
+        {/* Right side */}
+        <div className="ml-auto flex items-center gap-4 relative">
+
+          {/* Search */}
+          <div className="relative">
+            {searchOpen ? (
+              <div className="flex items-center gap-2 border border-white/60 bg-black/80 px-3 py-1.5 backdrop-blur-sm">
+                <Search size={15} className="text-white shrink-0" />
+                <input
+                  ref={inputRef}
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder="Titles, people, genres"
+                  className="bg-transparent text-sm text-white placeholder-gray-400 outline-none w-52"
+                  onKeyDown={e => e.key === 'Escape' && closeSearch()}
+                />
+                {loading && <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin shrink-0" />}
+                <button onClick={closeSearch}><X size={14} className="text-gray-400 hover:text-white" /></button>
+              </div>
+            ) : (
+              <button onClick={openSearch} className="text-white hover:text-gray-300 transition-colors">
+                <Search size={20} />
+              </button>
+            )}
+
+            {/* Search results dropdown */}
+            {searchOpen && results.length > 0 && (
+              <div className="absolute right-0 top-full mt-1 w-80 bg-[#0a051b] border border-gray-700 shadow-2xl z-50">
+                {results.map(r => (
+                  <button key={r.id} onClick={() => goTo(r)}
+                    className="flex items-center gap-3 w-full px-3 py-2 hover:bg-white/5 transition-colors text-left group">
+                    <div className="w-12 h-8 shrink-0 bg-gray-800 overflow-hidden">
+                      {r.backdrop_path && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={`${POSTER_SM}${r.backdrop_path}`} alt="" className="w-full h-full object-cover" />
                       )}
-                    </p>
-                  </div>
-                </button>
-              ))}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white truncate">{r.title ?? r.name}</p>
+                      <p className="text-xs text-gray-500">{r.media_type === 'tv' ? 'TV Show' : 'Movie'} · {(r.release_date ?? r.first_air_date)?.slice(0, 4)}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Notification bell */}
+          <button className="relative text-white hover:text-gray-300 transition-colors hidden sm:block">
+            <Bell size={20} />
+            <span className="absolute -top-1 -right-1 w-2 h-2 bg-cyber-accent rounded-full" />
+          </button>
+
+          {/* Profile avatar */}
+          <div className="flex items-center gap-1 cursor-pointer group">
+            <div className="w-8 h-8 rounded bg-cyber-accent flex items-center justify-center text-white text-sm font-bold select-none">
+              C
             </div>
-          )}
+            <ChevronDown size={14} className="text-white group-hover:rotate-180 transition-transform duration-200 hidden sm:block" />
+          </div>
+
         </div>
       </div>
     </nav>

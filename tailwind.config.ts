@@ -10,40 +10,29 @@ const config: Config = {
     extend: {
       colors: {
         cyber: {
-          bg: '#0a051b',
-          card: '#12082a',
-          cardHover: '#1a0d38',
-          border: '#2d1b5e',
-          accent: '#8b5cf6',
-          accentDark: '#6d28d9',
+          bg:          '#0a051b',
+          card:        '#141125',
+          cardHover:   '#181828',
+          border:      '#2d1b5e',
+          accent:      '#8b5cf6',
+          accentDark:  '#6d28d9',
           accentLight: '#a78bfa',
-          neon: '#c084fc',
-          muted: '#4c1d95',
+          neon:        '#c084fc',
+          muted:       '#4c1d95',
+          teal:        '#54b9c5',   /* Netflix's "Explore All" teal-blue */
         },
       },
-      backgroundImage: {
-        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'hero-fade': 'linear-gradient(to right, #0a051b 40%, transparent 100%)',
-        'card-fade': 'linear-gradient(to top, #0a051b 0%, transparent 60%)',
+      fontFamily: {
+        sans: ['Inter', 'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
       },
       keyframes: {
-        shimmer: {
-          '0%': { backgroundPosition: '-1000px 0' },
-          '100%': { backgroundPosition: '1000px 0' },
-        },
-        fadeIn: {
-          '0%': { opacity: '0', transform: 'translateY(10px)' },
+        fadeUp: {
+          '0%':   { opacity: '0', transform: 'translateY(8px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
-        slideIn: {
-          '0%': { transform: 'translateX(-100%)' },
-          '100%': { transform: 'translateX(0)' },
         },
       },
       animation: {
-        shimmer: 'shimmer 2s infinite linear',
-        fadeIn: 'fadeIn 0.4s ease-out',
-        slideIn: 'slideIn 0.3s ease-out',
+        fadeIn: 'fadeUp 0.3s ease-out forwards',
       },
     },
   },

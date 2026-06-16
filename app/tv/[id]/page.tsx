@@ -12,9 +12,10 @@ interface Params {
   id: string
 }
 
-export async function generateMetadata({ params }: { params: Params }) {
+export async function generateMetadata({ params }: { params: Promise<Params> }) {
   try {
-    const show = await getTVDetails(Number(params.id))
+    const { id } = await params
+    const show = await getTVDetails(Number(id))
     return {
       title: `${show.name ?? 'TV Show'} — CyberFlix`,
       description: show.overview,
@@ -24,8 +25,9 @@ export async function generateMetadata({ params }: { params: Params }) {
   }
 }
 
-export default async function TVPage({ params }: { params: Params }) {
-  const id = Number(params.id)
+export default async function TVPage({ params }: { params: Promise<Params> }) {
+  const { id: rawId } = await params
+  const id = Number(rawId)
   if (isNaN(id)) notFound()
 
   let show

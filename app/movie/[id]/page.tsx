@@ -12,9 +12,10 @@ interface Params {
   id: string
 }
 
-export async function generateMetadata({ params }: { params: Params }) {
+export async function generateMetadata({ params }: { params: Promise<Params> }) {
   try {
-    const movie = await getMovieDetails(Number(params.id))
+    const { id } = await params
+    const movie = await getMovieDetails(Number(id))
     return {
       title: `${movie.title ?? 'Movie'} — CyberFlix`,
       description: movie.overview,
@@ -24,8 +25,9 @@ export async function generateMetadata({ params }: { params: Params }) {
   }
 }
 
-export default async function MoviePage({ params }: { params: Params }) {
-  const id = Number(params.id)
+export default async function MoviePage({ params }: { params: Promise<Params> }) {
+  const { id: rawId } = await params
+  const id = Number(rawId)
   if (isNaN(id)) notFound()
 
   let movie
